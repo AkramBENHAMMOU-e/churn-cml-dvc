@@ -1,0 +1,43 @@
+name: churn-imbalanced-dataset
+on: [push]
+permissions: write-all
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      # 1. Récupération du code
+      - uses: actions/checkout@v3
+
+      # 2. Installation de Node et CML
+      - uses: actions/setup-node@v3
+        with:
+          node-version: '16'
+      - uses: iterative/setup-cml@v1
+
+      # 3. Installation de Python 3.11
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      # 4. Entraînement du modèle (Ajout de la section 7.3)
+      - name: Train model & produce metrics
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          python script.py
+
+      # 5. Génération et publication du rapport CML
+      - name: Generate Report
+        env:
+          REPO_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Création du rapport Markdown
+          echo "## Metrics" > report.md
+          awk 'NR%4{print " "$0}{print ""}' metrics.txt >> report.md
+          
+          echo "## Confusion Matrix" >> report.md
+          echo "![](./conf_matrix.png)" >> report.md
+          
+          # Publication du commentaire sur GitHub
+          cml comment create report.md
